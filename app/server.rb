@@ -3,15 +3,16 @@ require "socket"
 class YourRedisServer
   def initialize(port)
     @port = port
+    @server = TCPServer.new(@port)
   end
 
   def start
-    server = TCPServer.new(@port)
+    client = server.accept
     loop do
-      client = server.accept
-      command = client.gets
-      if command
-        client.puts "+PONG\r\n"
+      command = client.gets.upcase
+      case command
+      when /PING/i
+        client.puts("+PONG\r\n")
       end
     end
   end
