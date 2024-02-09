@@ -1,6 +1,8 @@
 require "socket"
 
 class YourRedisServer
+  attr_reader :server
+
   def initialize(port)
     @port = port
     @server = TCPServer.new(@port)
