@@ -1,5 +1,7 @@
-require "socket"
+# frozen_string_literal: true
 
+require 'socket'
+# Toy Redis server built with Ruby's TCPServer.
 class YourRedisServer
   attr_reader :server
 
@@ -9,9 +11,16 @@ class YourRedisServer
   end
 
   def start
-    client = server.accept
     loop do
-      command = client.gets.upcase
+      Thread.new(server.accept) do |client|
+        handle_client(client)
+      end
+    end
+  end
+
+  def handle_client(client)
+    loop do
+      command = client.gets
       case command
       when /PING/i
         client.puts("+PONG\r\n")
