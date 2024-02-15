@@ -20,12 +20,20 @@ class YourRedisServer
 
   def handle_client(client)
     loop do
-      command = client.gets
+      command = client.gets&.strip
       case command
       when /PING/i
         client.puts("+PONG\r\n")
+      when /ECHO/i
+        handle_echo(client)
       end
     end
+  end
+
+  def handle_echo(client)
+    delimiter = client.gets&.strip
+    message = client.gets&.strip
+    client.puts("+#{message}\r\n")
   end
 end
 
