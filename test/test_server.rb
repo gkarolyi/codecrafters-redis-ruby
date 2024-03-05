@@ -20,7 +20,7 @@ class TestServer < Minitest::Test
   def test_echo
     socket.puts "*2\r\n$4\r\necho\r\n$12\r\nbingoasdfasd\r\n"
     response = socket.gets
-    assert_equal "$12\r\nbingoasdfasd\r\n", response
+    assert_equal "+bingoasdfasd\r\n", response
   end
 
   def test_set
@@ -29,9 +29,18 @@ class TestServer < Minitest::Test
     assert_equal "+OK\r\n", response
   end
 
-  def test_get
+  def test_set_then_get_existing_key
+    socket.puts "*3\r\n$3\r\nset\r\n$1\r\nz\r\n$6\r\n123124\r\n"
+    response = socket.gets
+    assert_equal "+OK\r\n", response
     socket.puts "*2\r\n$3\r\nget\r\n$1\r\nz\r\n"
     response = socket.gets
-    assert_equal "$6\r\n123124\r\n", response
+    assert_equal "+123124\r\n", response
+  end
+
+  def test_get_non_existing_key
+    socket.puts "*2\r\n$3\r\nget\r\n$1\r\nnonexistent\r\n"
+    response = socket.gets
+    assert_equal "$-1\r\n", response
   end
 end

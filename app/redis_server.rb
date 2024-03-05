@@ -1,4 +1,5 @@
 require 'socket'
+require_relative 'redis_parser'
 
 class RedisServer
   attr_reader :server
@@ -37,32 +38,30 @@ class RedisServer
   # rubocop:enable Metrics/MethodLength
 
   def handle_echo(client)
-    _length = get_line(client)
-    message = get_line(client)
+    message = RedisParser.read_echo(client)
     respond(client, message)
   end
 
   def handle_set(client)
-    _klength = get_line(client)
-    key = get_line(client)
-    _vlength = get_line(client)
-    value = get_line(client)
+    key, value = RedisParser.read_set(client)
     store[key] = value
     respond(client, 'OK')
   end
 
   def handle_get(client)
-    _ = get_line(client)
-    key = get_line(client)
+    key = RedisParser.read_get(client)
     value = store[key]
-    value ? respond(client, value) : client.write("$-1\r\n")
+    return respond(client, nil, null: true) unless value
+
+    respond(client, value)
   end
 
   def get_line(client)
     client.gets&.strip
   end
 
-  def respond(client, response)
-    client.write("+#{response}\r\n")
+  def respond(client, response, null: false)
+    response = null ? "$-1\r\n" : "+#{response}\r\n"
+    client.write(response)
   end
 end

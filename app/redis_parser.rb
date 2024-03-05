@@ -23,4 +23,33 @@ module RedisParser
       .join("\r\n")
       .concat("\r\n")
   end
+
+  def self.read_echo(client)
+    length = read_length(client)
+    read_bytes(client, length)
+  end
+
+  def self.read_set(client)
+    klength = read_length(client)
+    key = read_bytes(client, klength)
+    vlength = read_length(client)
+    value = read_bytes(client, vlength)
+
+    [key, value]
+  end
+
+  def self.read_get(client)
+    klength = read_length(client)
+    read_bytes(client, klength)
+  end
+
+  private
+
+  def self.read_length(client)
+    client.gets.gsub(/\D/, '').to_i
+  end
+
+  def self.read_bytes(client, length, separator = 2)
+    client.read(length + separator).strip
+  end
 end
