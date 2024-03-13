@@ -3,12 +3,13 @@ require_relative 'redis_parser'
 
 class RedisServer
   attr_reader :server
-  attr_accessor :store
+  attr_accessor :store, :expiries
 
   def initialize(port)
     @port = port
     @server = TCPServer.new(@port)
     @store = {}
+    @expiries = {}
   end
 
   def start
@@ -23,7 +24,7 @@ class RedisServer
   # rubocop:disable Metrics/MethodLength
   def handle_client(client)
     loop do
-      case get_line(client)
+      case client.gets
       when /PING/i
         respond(client, 'PONG')
       when /ECHO/i
@@ -43,25 +44,24 @@ class RedisServer
   end
 
   def handle_set(client)
-    key, value = RedisParser.read_set(client)
+    key, value, expiry = RedisParser.read_set(client)
+    expiries[key] = Time.now.to_f + (1.0 / expiry) if expiry
     store[key] = value
     respond(client, 'OK')
   end
 
   def handle_get(client)
     key = RedisParser.read_get(client)
-    value = store[key]
-    return respond(client, nil, null: true) unless value
+    return respond(client, nil) if expiries[key] && expiries[key] < Time.now.to_f
 
-    respond(client, value)
+    respond(client, store[key])
   end
 
-  def get_line(client)
-    client.gets&.strip
-  end
-
-  def respond(client, response, null: false)
-    response = null ? "$-1\r\n" : "+#{response}\r\n"
-    client.write(response)
+  def respond(client, response)
+    if response.nil?
+      client.write("$-1\r\n")
+    else
+      client.write("+#{response}\r\n")
+    end
   end
 end

@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require_relative '../app/redis_server'
 
-class TestServer < Minitest::Test
+class TestRedisServer < Minitest::Test
   attr_reader :socket
 
   PORT = 6381
@@ -40,6 +40,16 @@ class TestServer < Minitest::Test
 
   def test_get_non_existing_key
     socket.puts "*2\r\n$3\r\nget\r\n$1\r\nnonexistent\r\n"
+    response = socket.gets
+    assert_equal "$-1\r\n", response
+  end
+
+  def test_set_then_get_expired_key
+    socket.puts "*5\r\n$3\r\nset\r\n$3\r\nkey\r\n$6\r\n123124\r\n$2\r\npx\r\n$3\r\n100\r\n"
+    response = socket.gets
+    assert_equal "+OK\r\n", response
+    sleep 0.2
+    socket.puts "*2\r\n$3\r\nget\r\n$3\r\nkey\r\n"
     response = socket.gets
     assert_equal "$-1\r\n", response
   end
